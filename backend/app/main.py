@@ -61,6 +61,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
+    language: Optional[str] = 'en'  # Default to English
 
 class WeatherAssistant:
     """Weather Assistant using Agno framework with memory"""
@@ -71,7 +72,8 @@ class WeatherAssistant:
         self.session_state = {
             "last_location": None,
             "conversation_count": 0,
-            "conversation_history": []
+            "conversation_history": [],
+            "language": "en"
         }
         
         # Check for OpenWeather API key
@@ -137,12 +139,18 @@ class WeatherAssistant:
                 "Include temperature, conditions, humidity, and wind.",
                 "Provide practical activity and clothing recommendations.",
                 "Use simple language and minimal emojis.",
+                "LANGUAGE SUPPORT:",
+                "- Check session_state['language'] to determine response language",
+                "- If language is 'ja' (Japanese), respond entirely in Japanese",
+                "- If language is 'en' (English), respond in English",
+                "- Always maintain the requested language throughout your response",
+                "- Japanese responses should use natural, polite Japanese (です/ます form)",
                 "MEMORY & CONTEXT RULES:",
                 "- Check session_state['last_location'] for the user's previously mentioned city",
                 "- For follow-up questions like 'tomorrow?', 'cycling?', 'what about...', use last_location",
                 "- If user asks about activities/weather without location, use last_location from session_state",
                 "- If no location in session_state and none mentioned, ask for their city",
-                "- Session state contains: last_location and conversation_count",
+                "- Session state contains: last_location, conversation_count, and language",
                 "- NEVER treat words like 'tomorrow', 'what about', 'cycling' as locations",
                 "TOOL USAGE RULES:",
                 "- For current weather: use get_current_weather(location='City')",
@@ -217,9 +225,12 @@ class WeatherAssistant:
             logger.error(f"Error processing message: {e}")
             return f"I apologize, but I encountered an error while processing your request. Please try again. Error: {str(e)}"
     
-    def process_conversation(self, messages: List[Dict[str, str]]) -> str:
+    def process_conversation(self, messages: List[Dict[str, str]], language: str = 'en') -> str:
         """Process a conversation with context from previous messages"""
         try:
+            # Update language in session state
+            self.session_state["language"] = language
+            
             # Add conversation history to session state for context
             self.session_state["conversation_history"] = messages[-5:]  # Keep last 5 messages
             
@@ -231,13 +242,19 @@ class WeatherAssistant:
                     break
             
             if not last_user_message:
-                return "I didn't receive a message. Please ask me about the weather!"
+                if language == 'ja':
+                    return "メッセージが受信されませんでした。天気について聞いてください！"
+                else:
+                    return "I didn't receive a message. Please ask me about the weather!"
             
             return self.process_message(last_user_message)
             
         except Exception as e:
             logger.error(f"Error processing conversation: {e}")
-            return f"I apologize, but I encountered an error while processing your conversation. Please try again."
+            if language == 'ja':
+                return f"申し訳ございませんが、会話の処理中にエラーが発生しました。もう一度お試しください。"
+            else:
+                return f"I apologize, but I encountered an error while processing your conversation. Please try again."
 
 # Global weather assistant instance
 weather_assistant = None
@@ -268,8 +285,8 @@ async def weather_chat(request: ChatRequest):
         # Convert messages to dict format
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
         
-        # Process the conversation through the agentic assistant
-        response = weather_assistant.process_conversation(messages)
+        # Process the conversation through the agentic assistant with language support
+        response = weather_assistant.process_conversation(messages, request.language)
         
         return {"response": response}
     
