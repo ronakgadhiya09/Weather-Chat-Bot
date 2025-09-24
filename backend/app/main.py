@@ -145,18 +145,28 @@ class WeatherAssistant:
                 "- If language is 'en' (English), respond in English",
                 "- Always maintain the requested language throughout your response",
                 "- Japanese responses should use natural, polite Japanese (です/ます form)",
+                "CONVERSATION FLOW RULES:",
+                "- Recognize when user is saying thank you, goodbye, or general acknowledgments",
+                "- For thank you messages ('thank you', 'thanks', 'ありがとう', 'ありがとうございます'), respond politely and offer help with other weather questions",
+                "- For greetings ('hello', 'hi', 'こんにちは'), respond warmly and ask how you can help with weather",
+                "- For goodbyes ('bye', 'goodbye', 'さようなら'), wish them well and mention you're available for weather questions",
+                "- DO NOT repeat previous weather information unless specifically asked about it again",
+                "- Only provide weather data when explicitly requested or when answering weather-specific questions",
                 "MEMORY & CONTEXT RULES:",
                 "- Check session_state['last_location'] for the user's previously mentioned city",
-                "- For follow-up questions like 'tomorrow?', 'cycling?', 'what about...', use last_location",
+                "- For follow-up questions like 'tomorrow?', 'cycling?', 'what about...', use last_location ONLY if it's weather-related",
                 "- If user asks about activities/weather without location, use last_location from session_state",
                 "- If no location in session_state and none mentioned, ask for their city",
                 "- Session state contains: last_location, conversation_count, and language",
                 "- NEVER treat words like 'tomorrow', 'what about', 'cycling' as locations",
+                "- For non-weather conversations (greetings, thanks, general chat), do NOT reference last_location",
+                "- Keep location context separate from general conversation context",
                 "TOOL USAGE RULES:",
                 "- For current weather: use get_current_weather(location='City')",
                 "- For forecasts: use get_forecast(location='City', days=1) where days is ALWAYS a number",
                 "- For air quality: use get_air_pollution(location='City')",
-                "- If tool calls fail, use get_current_weather instead and explain limitation"
+                "- If tool calls fail, use get_current_weather instead and explain limitation",
+                "- DO NOT call weather tools for non-weather conversations (greetings, thanks, etc.)"
             ],
             markdown=False,  # Disable markdown for cleaner responses
             # Enable memory and session management
@@ -164,7 +174,7 @@ class WeatherAssistant:
             session_state=self.session_state,
             add_session_state_to_context=True,
             add_history_to_context=True,
-            num_history_runs=3  # Remember last 3 exchanges for context
+            num_history_runs=2  # Remember last 2 exchanges for context (reduced to prevent loops)
         )
         
         logger.info("🌤️  Weather Assistant initialized successfully!")
@@ -195,19 +205,55 @@ class WeatherAssistant:
         
         return None
     
+    def is_weather_related_query(self, message: str) -> bool:
+        """Check if the message is actually asking about weather"""
+        weather_keywords = ['weather', 'temperature', 'rain', 'snow', 'sunny', 'cloudy', 'forecast', 'humid', 'wind',
+                           '天気', '気温', '雨', '雪', '晴れ', '曇り', '予報', '湿度', '風', '気候', '寒い', '暑い']
+        
+        # Check for explicit weather questions
+        weather_questions = ['how is', 'what is', 'what\'s', 'how\'s', 'tell me about', 'どう', 'どんな', '教えて']
+        
+        message_lower = message.lower()
+        
+        # Check for thank you, greetings, or non-weather messages
+        non_weather = ['thank', 'thanks', 'bye', 'goodbye', 'hello', 'hi', 'good morning', 'good evening',
+                      'ありがとう', 'ありがとうございます', 'さようなら', 'こんにちは', 'こんばんは', 'おはよう']
+        
+        # If it's clearly a non-weather message, return False
+        for phrase in non_weather:
+            if phrase in message_lower:
+                return False
+        
+        # If it contains weather keywords, likely weather-related
+        for keyword in weather_keywords:
+            if keyword in message_lower:
+                return True
+                
+        # If it's a question about weather (contains question + weather keyword)
+        for question in weather_questions:
+            if question in message_lower:
+                for keyword in weather_keywords:
+                    if keyword in message_lower:
+                        return True
+        
+        return False
+
     def process_message(self, message: str) -> str:
         """Process a single message through the agentic assistant"""
         try:
             # Update conversation count
             self.session_state["conversation_count"] += 1
             
-            # Extract location if mentioned and update session state
-            extracted_location = self.extract_location_from_message(message)
-            if extracted_location:
-                self.session_state["last_location"] = extracted_location
-                logger.info(f"💭 Extracted and remembered location: {extracted_location}")
-            elif self.session_state["last_location"]:
-                logger.info(f"💭 Using remembered location: {self.session_state['last_location']}")
+            # Only extract location for weather-related queries
+            if self.is_weather_related_query(message):
+                extracted_location = self.extract_location_from_message(message)
+                if extracted_location:
+                    self.session_state["last_location"] = extracted_location
+                    logger.info(f"💭 Extracted and remembered location: {extracted_location}")
+                elif self.session_state["last_location"]:
+                    logger.info(f"💭 Using remembered location: {self.session_state['last_location']}")
+            else:
+                logger.info(f"💭 Non-weather query detected, not extracting location")
             
             # Get response from the agent
             response = self.agent.run(
