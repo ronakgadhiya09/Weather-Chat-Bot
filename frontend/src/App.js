@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -20,7 +20,12 @@ import {
   IoSunny, 
   IoCloudOffline,
   IoWarning,
-  IoCheckmarkCircle
+  IoCheckmarkCircle,
+  IoMicOutline,
+  IoMicOffOutline,
+  IoVolumeHighOutline,
+  IoVolumeMuteOutline,
+  IoStopOutline
 } from 'react-icons/io5';
 import { BsRobot } from 'react-icons/bs';
 import { FaUser } from 'react-icons/fa';
@@ -43,7 +48,19 @@ function App() {
   });
   const [connectionStatus, setConnectionStatus] = useState('checking');
   const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  // Voice feature states
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
+    const saved = localStorage.getItem('voiceEnabled');
+    return saved ? JSON.parse(saved) : true;
+  });
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [supportsSpeech, setSupportsSpeech] = useState(false);
+  
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const synthesisRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -75,6 +92,124 @@ function App() {
     
     checkBackendConnection();
   }, []);
+
+  // Initialize speech recognition and synthesis
+  useEffect(() => {
+    // Check for speech recognition support
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      
+      const recognition = recognitionRef.current;
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+        console.log('Speech recognition started');
+      };
+      
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('Speech recognition result:', transcript);
+        setInput(transcript);
+        setIsListening(false);
+      };
+      
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+        console.log('Speech recognition ended');
+      };
+      
+      setSupportsSpeech(true);
+    }
+    
+    // Check for speech synthesis support
+    if ('speechSynthesis' in window) {
+      synthesisRef.current = window.speechSynthesis;
+    }
+    
+    // Save voice preference
+    localStorage.setItem('voiceEnabled', JSON.stringify(isVoiceEnabled));
+  }, [isVoiceEnabled]);
+
+  // Speech synthesis function
+  const speakText = useCallback((text) => {
+    if (!isVoiceEnabled || !synthesisRef.current) return;
+    
+    // Cancel any ongoing speech
+    synthesisRef.current.cancel();
+    
+    // Clean text for better speech (remove emojis and special characters)
+    const cleanText = text
+      .replace(/[🌤️⛅☀️🌧️❄️⛈️🌪️🌫️]/g, '') // Remove weather emojis
+      .replace(/°C/g, ' degrees Celsius')
+      .replace(/°F/g, ' degrees Fahrenheit')
+      .replace(/\([^)]*\)/g, '') // Remove parentheses content
+      .trim();
+    
+    if (!cleanText) return;
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+    
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+    
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      console.error('Speech synthesis error');
+    };
+    
+    synthesisRef.current.speak(utterance);
+  }, [isVoiceEnabled]);
+
+  // Stop speech synthesis
+  const stopSpeech = useCallback(() => {
+    if (synthesisRef.current) {
+      synthesisRef.current.cancel();
+      setIsSpeaking(false);
+    }
+  }, []);
+
+  // Start voice recognition
+  const startListening = useCallback(() => {
+    if (recognitionRef.current && !isListening) {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+      }
+    }
+  }, [isListening]);
+
+  // Stop voice recognition
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+    }
+  }, [isListening]);
+
+  // Toggle voice features
+  const toggleVoice = () => {
+    setIsVoiceEnabled(prev => !prev);
+    if (isVoiceEnabled) {
+      stopSpeech();
+    }
+  };
 
   const getWeatherIcon = (description) => {
     const desc = description.toLowerCase();
@@ -164,14 +299,25 @@ function App() {
       console.log("Received response:", response.data);
       
       // Add AI response to chat
+      const assistantMessage = { 
+        role: 'assistant', 
+        content: response.data.response,
+        timestamp: new Date()
+      };
+      
       setMessages(prevMessages => [
         ...prevMessages, 
-        { 
-          role: 'assistant', 
-          content: response.data.response,
-          timestamp: new Date()
-        }
+        assistantMessage
       ]);
+      
+      // Speak the AI response if voice is enabled
+      if (isVoiceEnabled && response.data.response) {
+        // Small delay to ensure message is rendered before speaking
+        setTimeout(() => {
+          speakText(response.data.response);
+        }, 500);
+      }
+      
       setConnectionStatus('connected');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -192,15 +338,24 @@ function App() {
         console.error("Error message:", error.message);
       }
       
+      const errorAssistantMessage = { 
+        role: 'assistant', 
+        content: errorMessage,
+        timestamp: new Date(),
+        isError: true
+      };
+      
       setMessages(prevMessages => [
         ...prevMessages, 
-        { 
-          role: 'assistant', 
-          content: errorMessage,
-          timestamp: new Date(),
-          isError: true
-        }
+        errorAssistantMessage
       ]);
+      
+      // Speak error message if voice is enabled
+      if (isVoiceEnabled) {
+        setTimeout(() => {
+          speakText(errorMessage);
+        }, 500);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,9 +392,31 @@ function App() {
             <h1>WeatherBot</h1>
             {getStatusIcon()}
           </div>
-          <button onClick={toggleTheme} className="theme-toggle">
-            {isDarkMode ? <IoSunny /> : <IoMoon />}
-          </button>
+          <div className="header-controls">
+            {supportsSpeech && (
+              <div className="voice-controls">
+                <button 
+                  onClick={toggleVoice}
+                  className={`voice-toggle ${isVoiceEnabled ? 'enabled' : 'disabled'}`}
+                  title={isVoiceEnabled ? 'Disable voice' : 'Enable voice'}
+                >
+                  {isVoiceEnabled ? <IoVolumeHighOutline /> : <IoVolumeMuteOutline />}
+                </button>
+                {isSpeaking && (
+                  <button 
+                    onClick={stopSpeech}
+                    className="stop-speech"
+                    title="Stop speaking"
+                  >
+                    <IoStopOutline />
+                  </button>
+                )}
+              </div>
+            )}
+            <button onClick={toggleTheme} className="theme-toggle">
+              {isDarkMode ? <IoSunny /> : <IoMoon />}
+            </button>
+          </div>
         </div>
       </motion.header>
       
@@ -299,6 +476,30 @@ function App() {
               </div>
             </motion.div>
           )}
+          
+          {isSpeaking && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="message assistant speaking"
+            >
+              <div className="message-avatar">
+                <BsRobot />
+              </div>
+              <div className="message-bubble">
+                <div className="speaking-indicator">
+                  <div className="sound-waves">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span className="speaking-text">WeatherBot is speaking...</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
           <div ref={messagesEndRef} />
         </div>
         
@@ -314,13 +515,26 @@ function App() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about weather in any city..."
-              disabled={isLoading}
+              placeholder={isListening ? "Listening..." : "Ask about weather in any city..."}
+              disabled={isLoading || isListening}
               className="message-input"
             />
+            {supportsSpeech && (
+              <motion.button 
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                disabled={isLoading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`mic-button ${isListening ? 'listening' : ''}`}
+                title={isListening ? 'Stop listening' : 'Start voice input'}
+              >
+                {isListening ? <IoMicOffOutline /> : <IoMicOutline />}
+              </motion.button>
+            )}
             <motion.button 
               type="submit" 
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || isListening}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="send-button"
