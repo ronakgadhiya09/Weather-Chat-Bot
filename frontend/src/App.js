@@ -12,7 +12,9 @@ import {
   WiNightClear,
   WiNightAltCloudy,
   WiNightAltRain,
-  WiWindy
+  WiWindy,
+  WiHumidity,
+  WiStrongWind
 } from 'react-icons/wi';
 import { 
   IoSend, 
@@ -25,8 +27,21 @@ import {
   IoMicOffOutline,
   IoVolumeHighOutline,
   IoVolumeMuteOutline,
-  IoStopOutline
+  IoStopOutline,
+  IoCheckmark,
+  IoClose,
+  IoTime,
+  IoThermometer,
+  IoEye
 } from 'react-icons/io5';
+import { 
+  MdSportsBaseball, 
+  MdDirectionsRun, 
+  MdDirectionsWalk,
+  MdDirectionsBike,
+  MdOutdoorGrill,
+  MdSportsSoccer 
+} from 'react-icons/md';
 import { BsRobot } from 'react-icons/bs';
 import { FaUser } from 'react-icons/fa';
 import QuickSuggestions from './QuickSuggestions';
@@ -36,7 +51,7 @@ function App() {
   const [messages, setMessages] = useState([
     { 
       role: 'assistant', 
-      content: 'Hello! I\'m your AI weather assistant. Ask me about the weather in any city around the world! 🌤️',
+      content: 'Hello! I\'m your enhanced AI weather assistant. Ask me about weather in any city, or get smart recommendations for activities! Try asking: "Can I play cricket in Mumbai this evening?" 🌤️⚡',
       timestamp: new Date()
     }
   ]);
@@ -148,74 +163,61 @@ function App() {
     
     // Clean text for better speech (remove emojis and special characters)
     const cleanText = text
-      .replace(/[🌤️⛅☀️🌧️❄️⛈️🌪️🌫️]/g, '') // Remove weather emojis
+      .replace(/[🌤️⚡🌟✅⚠️❌🔥💧🌡️]/g, '')
       .replace(/°C/g, ' degrees Celsius')
       .replace(/°F/g, ' degrees Fahrenheit')
-      .replace(/\([^)]*\)/g, '') // Remove parentheses content
+      .replace(/m\/s/g, ' meters per second')
+      .replace(/%/g, ' percent')
+      .replace(/\s+/g, ' ')
       .trim();
-    
-    if (!cleanText) return;
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 0.8;
     
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-    };
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-    
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      console.error('Speech synthesis error');
-    };
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
     
     synthesisRef.current.speak(utterance);
   }, [isVoiceEnabled]);
 
-  // Stop speech synthesis
-  const stopSpeech = useCallback(() => {
+  const stopSpeech = () => {
     if (synthesisRef.current) {
       synthesisRef.current.cancel();
       setIsSpeaking(false);
     }
-  }, []);
+  };
 
-  // Start voice recognition
-  const startListening = useCallback(() => {
+  const startListening = () => {
     if (recognitionRef.current && !isListening) {
-      try {
-        recognitionRef.current.start();
-      } catch (error) {
-        console.error('Error starting speech recognition:', error);
-      }
+      recognitionRef.current.start();
     }
-  }, [isListening]);
+  };
 
-  // Stop voice recognition
-  const stopListening = useCallback(() => {
+  const stopListening = () => {
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
     }
-  }, [isListening]);
+  };
 
-  // Toggle voice features
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
   const toggleVoice = () => {
-    setIsVoiceEnabled(prev => !prev);
-    if (isVoiceEnabled) {
+    setIsVoiceEnabled(!isVoiceEnabled);
+    if (isSpeaking) {
       stopSpeech();
     }
   };
 
   const getWeatherIcon = (description) => {
     const desc = description.toLowerCase();
-    const isNight = new Date().getHours() >= 18 || new Date().getHours() <= 6;
+    const isNight = new Date().getHours() > 18 || new Date().getHours() < 6;
     
-    if (desc.includes('clear') || desc.includes('sunny')) {
+    if (desc.includes('clear')) {
       return isNight ? <WiNightClear /> : <WiDaySunny />;
     } else if (desc.includes('cloud')) {
       return isNight ? <WiNightAltCloudy /> : <WiCloudy />;
@@ -223,9 +225,9 @@ function App() {
       return isNight ? <WiNightAltRain /> : <WiRain />;
     } else if (desc.includes('snow')) {
       return <WiSnow />;
-    } else if (desc.includes('thunder') || desc.includes('storm')) {
+    } else if (desc.includes('thunder')) {
       return <WiThunderstorm />;
-    } else if (desc.includes('fog') || desc.includes('mist') || desc.includes('haze')) {
+    } else if (desc.includes('mist') || desc.includes('fog') || desc.includes('haze')) {
       return <WiFog />;
     } else if (desc.includes('wind')) {
       return <WiWindy />;
@@ -233,8 +235,163 @@ function App() {
     return <WiDaySunny />;
   };
 
-  const parseWeatherResponse = (content) => {
-    // Extract weather information and add appropriate icons
+  const getActivityIcon = (activity) => {
+    switch (activity?.toLowerCase()) {
+      case 'cricket':
+        return <MdSportsBaseball />;
+      case 'football':
+        return <MdSportsSoccer />;
+      case 'running':
+        return <MdDirectionsRun />;
+      case 'walking':
+        return <MdDirectionsWalk />;
+      case 'cycling':
+        return <MdDirectionsBike />;
+      case 'picnic':
+        return <MdOutdoorGrill />;
+      default:
+        return <MdSportsBaseball />;
+    }
+  };
+
+  const getRecommendationIcon = (recommendation) => {
+    switch (recommendation) {
+      case 'excellent':
+      case 'good':
+        return <IoCheckmark className="rec-icon excellent" />;
+      case 'moderate':
+        return <IoWarning className="rec-icon moderate" />;
+      case 'poor':
+        return <IoClose className="rec-icon poor" />;
+      default:
+        return <IoEye className="rec-icon" />;
+    }
+  };
+
+  const getRecommendationColor = (recommendation) => {
+    switch (recommendation) {
+      case 'excellent':
+        return '#10b981'; // green
+      case 'good':
+        return '#22c55e'; // light green
+      case 'moderate':
+        return '#f59e0b'; // yellow
+      case 'poor':
+        return '#ef4444'; // red
+      default:
+        return '#6b7280'; // gray
+    }
+  };
+
+  const renderActivityAdvice = (data) => {
+    const { structured_data } = data;
+    const { activity, city, recommendation, confidence, factors, current_weather } = structured_data;
+    
+    return (
+      <div className="activity-advice-card">
+        <div className="activity-header">
+          <div className="activity-info">
+            <span className="activity-icon">{getActivityIcon(activity)}</span>
+            <div className="activity-details">
+              <h3 className="activity-name">{activity.charAt(0).toUpperCase() + activity.slice(1)} in {city}</h3>
+              <div className="recommendation-badge" style={{ background: getRecommendationColor(recommendation) }}>
+                {getRecommendationIcon(recommendation)}
+                <span>{recommendation.charAt(0).toUpperCase() + recommendation.slice(1)}</span>
+                <span className="confidence">({confidence}%)</span>
+              </div>
+            </div>
+          </div>
+          <div className="current-temp">
+            <IoThermometer />
+            <span>{current_weather.temperature}</span>
+          </div>
+        </div>
+        
+        <div className="weather-factors">
+          {factors.map((factor, index) => (
+            <div key={index} className={`factor ${factor.impact}`}>
+              <div className="factor-header">
+                <span className="factor-name">{factor.factor.charAt(0).toUpperCase() + factor.factor.slice(1)}</span>
+                <span className="factor-value">{factor.value}</span>
+              </div>
+              <div className="factor-bar">
+                <div 
+                  className="factor-progress" 
+                  style={{ 
+                    width: `${factor.score}%`,
+                    background: factor.impact === 'excellent' ? '#10b981' : 
+                               factor.impact === 'good' ? '#22c55e' :
+                               factor.impact === 'moderate' ? '#f59e0b' : '#ef4444'
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="weather-summary">
+          <div className="weather-item">
+            <WiHumidity />
+            <span>{current_weather.humidity}</span>
+          </div>
+          <div className="weather-item">
+            <WiStrongWind />
+            <span>{current_weather.wind_speed}</span>
+          </div>
+          <div className="weather-item">
+            <span className="weather-desc">{current_weather.description}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEnhancedWeather = (data) => {
+    const { structured_data } = data;
+    const { city, current_weather } = structured_data;
+    const icon = getWeatherIcon(current_weather.description);
+    
+    return (
+      <div className="enhanced-weather-card">
+        <div className="weather-header">
+          <span className="weather-icon">{icon}</span>
+          <span className="city-name">{city}</span>
+        </div>
+        <div className="weather-details">
+          <div className="temperature">{current_weather.temperature}</div>
+          <div className="description">{current_weather.description}</div>
+        </div>
+        <div className="additional-info">
+          <div className="info-item">
+            <span>Feels like {current_weather.feels_like}</span>
+          </div>
+          <div className="info-item">
+            <WiHumidity />
+            <span>{current_weather.humidity}</span>
+          </div>
+          <div className="info-item">
+            <WiStrongWind />
+            <span>{current_weather.wind_speed}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const parseResponse = (content, responseData = null) => {
+    // Check if this is a structured response from the new API
+    if (responseData && responseData.response_type) {
+      switch (responseData.response_type) {
+        case 'activity_advice':
+          return renderActivityAdvice(responseData);
+        case 'enhanced_weather':
+          return renderEnhancedWeather(responseData);
+        default:
+          break;
+      }
+    }
+    
+    // Fallback to original weather parsing for backward compatibility
     const weatherPattern = /Weather in ([^:]+): ([^.]+)\. Temperature: ([^°]+)°C/;
     const match = content.match(weatherPattern);
     
@@ -289,20 +446,21 @@ function App() {
     setInput('');
     
     try {
-      console.log("Sending request to backend with messages:", [...messages, userMessage]);
+      console.log("Sending request to enhanced backend with messages:", [...messages, userMessage]);
       
-      // Send request to backend with 15s timeout
-      const response = await axios.post('http://localhost:8000/api/weather-chat', {
+      // Use the new smart weather chat endpoint
+      const response = await axios.post('http://localhost:8000/api/smart-weather-chat', {
         messages: [...messages, userMessage]
-      }, { timeout: 15000 });
+      }, { timeout: 20000 }); // Increased timeout for complex processing
       
-      console.log("Received response:", response.data);
+      console.log("Received enhanced response:", response.data);
       
-      // Add AI response to chat
+      // Add AI response to chat with enhanced data
       const assistantMessage = { 
         role: 'assistant', 
         content: response.data.response,
-        timestamp: new Date()
+        timestamp: new Date(),
+        responseData: response.data // Store the full response for enhanced rendering
       };
       
       setMessages(prevMessages => [
@@ -322,75 +480,58 @@ function App() {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      let errorMessage = 'Sorry, I encountered an error. Please try again later.';
-      
+      // Enhanced error handling
+      let errorMessage = "I'm having trouble connecting to the weather service. ";
       if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Request timed out. The server might be busy. Please try again.';
-      } else if (error.response) {
-        console.error("Error data:", error.response.data);
-        console.error("Error status:", error.response.status);
-        errorMessage = `Server error (${error.response.status}). Please try again.`;
-      } else if (error.request) {
-        console.error("No response received:", error.request);
-        errorMessage = "Couldn't connect to the server. Please check your connection.";
-        setConnectionStatus('disconnected');
+        errorMessage += "The request timed out. Please try again.";
+      } else if (error.response?.status === 404) {
+        errorMessage += "I couldn't find information for that location.";
+      } else if (error.response?.status >= 500) {
+        errorMessage += "There's an issue with the weather service. Please try again later.";
       } else {
-        console.error("Error message:", error.message);
+        errorMessage += "Please check your connection and try again.";
       }
       
-      const errorAssistantMessage = { 
+      const errorMsg = { 
         role: 'assistant', 
         content: errorMessage,
         timestamp: new Date(),
         isError: true
       };
-      
-      setMessages(prevMessages => [
-        ...prevMessages, 
-        errorAssistantMessage
-      ]);
-      
-      // Speak error message if voice is enabled
-      if (isVoiceEnabled) {
-        setTimeout(() => {
-          speakText(errorMessage);
-        }, 500);
-      }
+      setMessages(prevMessages => [...prevMessages, errorMsg]);
+      setConnectionStatus('disconnected');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusIcon = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return <IoCheckmarkCircle className="status-icon connected" />;
-      case 'disconnected':
-        return <IoCloudOffline className="status-icon disconnected" />;
-      case 'checking':
-        return <IoWarning className="status-icon checking" />;
-      default:
-        return null;
-    }
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   return (
-    <div className={`App ${isDarkMode ? 'dark' : 'light'}`}>
-      <motion.header
+    <div className="App">
+      <motion.header 
+        className="header"
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="header"
       >
         <div className="header-content">
           <div className="header-left">
-            <BsRobot className="header-icon" />
-            <h1>WeatherBot</h1>
-            {getStatusIcon()}
+            <motion.span 
+              className="header-icon"
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              🌤️
+            </motion.span>
+            <h1>Smart WeatherBot</h1>
+            <motion.span 
+              className={`status-icon ${connectionStatus}`}
+              animate={connectionStatus === 'checking' ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              {connectionStatus === 'connected' && <IoCheckmarkCircle />}
+              {connectionStatus === 'disconnected' && <IoCloudOffline />}
+              {connectionStatus === 'checking' && <IoWarning />}
+            </motion.span>
           </div>
           <div className="header-controls">
             {supportsSpeech && (
@@ -442,7 +583,7 @@ function App() {
                 <div className="message-bubble">
                   <div className="message-content">
                     {msg.role === 'assistant' && !msg.isError 
-                      ? parseWeatherResponse(msg.content) 
+                      ? parseResponse(msg.content, msg.responseData) 
                       : msg.content
                     }
                   </div>
@@ -471,7 +612,7 @@ function App() {
                     <span></span>
                     <span></span>
                   </div>
-                  <span className="typing-text">WeatherBot is thinking...</span>
+                  <span className="typing-text">Smart WeatherBot is analyzing...</span>
                 </div>
               </div>
             </motion.div>
@@ -495,7 +636,7 @@ function App() {
                     <span></span>
                     <span></span>
                   </div>
-                  <span className="speaking-text">WeatherBot is speaking...</span>
+                  <span className="speaking-text">Smart WeatherBot is speaking...</span>
                 </div>
               </div>
             </motion.div>
@@ -515,7 +656,7 @@ function App() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isListening ? "Listening..." : "Ask about weather in any city..."}
+              placeholder={isListening ? "Listening..." : "Ask about weather or activities... e.g., 'Can I play cricket in Surat this evening?'"}
               disabled={isLoading || isListening}
               className="message-input"
             />
