@@ -15,10 +15,5 @@
       "src": "/(.*)",
       "dest": "/api/index.py"
     }
-  ],
-  "env": {
-    "OPENAI_API_KEY": "@openai_api_key",
-    "OPENWEATHER_API_KEY": "@openweather_api_key",
-    "GROQ_API_KEY": "@groq_api_key"
-  }
+  ]
 } 
