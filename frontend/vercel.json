@@ -36,11 +36,11 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "@react_app_api_url"
+    "REACT_APP_API_URL": "https://weather-chat-bot-93i5.vercel.app/"
   },
   "build": {
     "env": {
-      "REACT_APP_API_URL": "@react_app_api_url"
+      "REACT_APP_API_URL": "https://weather-chat-bot-93i5.vercel.app/"
     }
   },
   "functions": {
