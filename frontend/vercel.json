@@ -43,11 +43,6 @@
       "REACT_APP_API_URL": "https://weather-chat-bot-93i5-git-main-ronaks-projects-eebf45ac.vercel.app/"
     }
   },
-  "functions": {
-    "build": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
