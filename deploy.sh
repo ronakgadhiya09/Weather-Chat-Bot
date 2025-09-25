@@ -69,11 +69,33 @@ echo "📦 Installing dependencies..."
 echo "Installing frontend dependencies..."
 cd frontend
 npm install
+
+# Fix security vulnerabilities if any
+echo "Checking for security vulnerabilities..."
+if npm audit --audit-level high > /dev/null 2>&1; then
+    echo "✅ No high-severity vulnerabilities found"
+else
+    echo "🔧 Fixing security vulnerabilities..."
+    npm audit fix --audit-level high || echo "⚠️  Some vulnerabilities require manual review"
+fi
+
 cd ..
 
 echo "Installing backend dependencies..."
 cd backend
-python3 -m pip install -r requirements.txt
+
+# Check if virtual environment exists, create if not
+if [ ! -d "venv" ]; then
+    echo "Creating Python virtual environment..."
+    python3 -m venv venv
+fi
+
+# Activate virtual environment and install dependencies
+echo "Activating virtual environment and installing packages..."
+source venv/bin/activate
+pip install -r requirements.txt
+deactivate
+
 cd ..
 
 echo "✅ Dependencies installed!"
@@ -84,7 +106,13 @@ echo "🧪 Testing local setup..."
 
 echo "Testing backend..."
 cd backend
-python3 -c "import fastapi; print('FastAPI imported successfully')"
+if [ -d "venv" ]; then
+    source venv/bin/activate
+    python -c "import fastapi; print('FastAPI imported successfully')"
+    deactivate
+else
+    python3 -c "import fastapi; print('FastAPI imported successfully')" 2>/dev/null || echo "⚠️  FastAPI not found in system Python, but virtual environment will be used for deployment"
+fi
 cd ..
 
 echo "Testing frontend..."
