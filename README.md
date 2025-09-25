@@ -1,80 +1,94 @@
-# Weather Chatbot
+# WeatherBot 🌤️
 
-A simple chatbot that provides weather information for cities using OpenAI and OpenWeather APIs.
+A beautiful AI-powered weather chatbot with Japanese language support and voice features.
 
 ## Features
 
-- Chat interface to ask about weather in any city
-- Uses OpenAI to process natural language queries
-- Fetches real-time weather data from OpenWeather API
-- Simple, responsive UI
+- 🤖 **AI Weather Assistant** - Get weather information for any city
+- 🗣️ **Voice Support** - Speak your questions and hear responses
+- 🌏 **Japanese Language** - Full Japanese interface and voice support
+- 🎨 **Beautiful UI** - Modern, responsive design with animations
+- 🌙 **Dark/Light Mode** - Toggle between themes
 
-## Tech Stack
+## Quick Start
 
-- **Frontend**: React
-- **Backend**: FastAPI
-- **APIs**: OpenAI API, OpenWeather API
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- API Keys (OpenAI, OpenWeather, Groq)
 
-## Prerequisites
+### 1. Setup Backend
 
-- Node.js and npm
-- Python 3.8+ and pip
-- OpenAI API Key
-- OpenWeather API Key
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Setup
+### 2. Configure Environment
 
-### Backend
+Copy `backend/env.example` to `backend/config.env` and add your API keys:
+```
+OPENAI_API_KEY=your_openai_key
+OPENWEATHER_API_KEY=your_openweather_key
+GROQ_API_KEY=your_groq_key
+```
 
-1. Navigate to the backend directory:
-   ```
-   cd backend
-   ```
+### 3. Setup Frontend
 
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+```bash
+cd frontend
+npm install
+```
 
-3. Create a `config.env` file in the backend directory with your API keys:
-   ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENWEATHER_API_KEY=your_openweather_api_key_here
-   ```
+### 4. Run the Application
 
-4. Run the backend server:
-   ```
-   python run.py
-   ```
+**Terminal 1 - Backend:**
+```bash
+cd backend
+source venv/bin/activate
+python run.py
+```
 
-### Frontend
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm start
+```
 
-1. Navigate to the frontend directory:
-   ```
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```
-   npm install
-   ```
-
-3. Run the frontend development server:
-   ```
-   npm start
-   ```
+Visit http://localhost:3000 to use your WeatherBot!
 
 ## Usage
 
-1. Open your browser and go to `http://localhost:3000`
-2. Type a message asking about the weather in a city, for example:
-   - "What's the weather like in London?"
-   - "Is it raining in Tokyo right now?"
-   - "How's the temperature in New York?"
+1. **Ask about weather**: "What's the weather like in Tokyo?"
+2. **Switch languages**: Click the language toggle (EN/JA)
+3. **Use voice**: Click the microphone icon and speak
+4. **Toggle theme**: Click the sun/moon icon
 
-## API Endpoints
+## Project Structure
 
-- `GET /api/weather/{city}`: Get weather data for a specific city
-- `POST /api/chat`: General chat with AI
-- `POST /api/weather-chat`: Chat about weather with AI, which will extract city and provide weather data
-- `GET /health`: Health check endpoint 
+```
+WeatherBot/
+├── backend/           # Python FastAPI backend
+│   ├── app/          # Application code
+│   ├── venv/         # Virtual environment
+│   └── run.py        # Start script
+├── frontend/         # React frontend
+│   ├── src/          # Source code
+│   └── public/       # Static files
+└── README.md         # This file
+```
+
+## API Keys Required
+
+- **OpenAI**: For AI chat responses
+- **OpenWeather**: For weather data
+- **Groq**: Alternative AI model (optional)
+
+Get your keys from:
+- [OpenAI](https://platform.openai.com/api-keys)
+- [OpenWeather](https://openweathermap.org/api)
+- [Groq](https://console.groq.com/keys)
+
+That's it! Enjoy your WeatherBot! 🚀 
