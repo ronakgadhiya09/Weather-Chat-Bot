@@ -11,11 +11,11 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://weather-chat-bot-3fpt.vercel.app/"
+    "REACT_APP_API_URL": "https://weather-chat-bot.onrender.com/"
   },
   "build": {
     "env": {
-      "REACT_APP_API_URL": "https://weather-chat-bot-3fpt.vercel.app/"
+      "REACT_APP_API_URL": "https://weather-chat-bot.onrender.com/"
     }
   },
   "headers": [
