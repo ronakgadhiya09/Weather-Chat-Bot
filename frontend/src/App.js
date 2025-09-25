@@ -26,7 +26,8 @@ import {
   IoVolumeHighOutline,
   IoVolumeMuteOutline,
   IoStopOutline,
-  IoLanguageOutline
+  IoLanguageOutline,
+  IoCloudyOutline
 } from 'react-icons/io5';
 import { BsRobot } from 'react-icons/bs';
 import { FaUser } from 'react-icons/fa';
@@ -63,6 +64,84 @@ const translations = {
       startListening: '音声入力を開始',
       stopListening: '聞くのを止める',
       stopSpeaking: '話すのを止める'
+    }
+  }
+};
+
+// Animation variants for premium effects
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.6,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const headerVariants = {
+  hidden: { y: -100, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      duration: 0.8
+    }
+  }
+};
+
+const messageVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 30,
+    scale: 0.8
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 15,
+      duration: 0.5
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    scale: 0.9,
+    transition: {
+      duration: 0.3
+    }
+  }
+};
+
+const inputVariants = {
+  hidden: { y: 100, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      delay: 0.3
+    }
+  }
+};
+
+const floatingVariants = {
+  float: {
+    y: [-2, 2, -2],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut"
     }
   }
 };
@@ -308,24 +387,47 @@ function App() {
       const [, city, description, temp] = match;
       const icon = getWeatherIcon(description);
       return (
-        <div className="weather-response">
+        <motion.div 
+          className="weather-response"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
           <div className="weather-header">
-            <span className="weather-icon">{icon}</span>
+            <motion.span 
+              className="weather-icon"
+              variants={floatingVariants}
+              animate="float"
+            >
+              {icon}
+            </motion.span>
             <span className="city-name">{city}</span>
           </div>
           <div className="weather-details">
-            <div className="temperature">{temp}°C</div>
+            <motion.div 
+              className="temperature"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", delay: 0.3 }}
+            >
+              {temp}°C
+            </motion.div>
             <div className="description">{description}</div>
           </div>
           {content.includes('feels like') && (
-            <div className="additional-info">
+            <motion.div 
+              className="additional-info"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
               {content.match(/feels like ([^°]+)°C/)?.[0]}
               {content.includes('Humidity') && (
                 <span> • {content.match(/Humidity: (\d+%)/)?.[0]}</span>
               )}
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       );
     }
     
@@ -448,51 +550,109 @@ function App() {
   const t = translations[currentLanguage]; // Translation helper
 
   return (
-    <div className={`App ${isDarkMode ? 'dark' : 'light'}`}>
+    <motion.div 
+      className={`App ${isDarkMode ? 'dark' : 'light'}`}
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Floating Background Elements */}
+      <div className="bg-decoration">
+        <motion.div 
+          className="floating-cloud cloud-1"
+          variants={floatingVariants}
+          animate="float"
+        >
+          <IoCloudyOutline />
+        </motion.div>
+        <motion.div 
+          className="floating-cloud cloud-2"
+          variants={floatingVariants}
+          animate="float"
+          transition={{ delay: 1 }}
+        >
+          <IoCloudyOutline />
+        </motion.div>
+        <motion.div 
+          className="floating-cloud cloud-3"
+          variants={floatingVariants}
+          animate="float"
+          transition={{ delay: 2 }}
+        >
+          <IoCloudyOutline />
+        </motion.div>
+      </div>
+
       <motion.header
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        variants={headerVariants}
         className="header"
       >
         <div className="header-content">
           <div className="header-left">
-            <BsRobot className="header-icon" />
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.6 }}
+              className="header-icon"
+            >
+              <BsRobot />
+            </motion.div>
             <h1>{t.title}</h1>
-            {getStatusIcon()}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5, type: "spring" }}
+            >
+              {getStatusIcon()}
+            </motion.div>
           </div>
           <div className="header-controls">
-            <button 
+            <motion.button 
               onClick={toggleLanguage}
               className="language-toggle"
               title={`Switch to ${currentLanguage === 'en' ? 'Japanese' : 'English'}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               <IoLanguageOutline />
               <span className="language-code">{currentLanguage.toUpperCase()}</span>
-            </button>
+            </motion.button>
             {supportsSpeech && (
               <div className="voice-controls">
-                <button 
+                <motion.button 
                   onClick={toggleVoice}
                   className={`voice-toggle ${isVoiceEnabled ? 'enabled' : 'disabled'}`}
                   title={isVoiceEnabled ? t.voiceTooltips.disable : t.voiceTooltips.enable}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   {isVoiceEnabled ? <IoVolumeHighOutline /> : <IoVolumeMuteOutline />}
-                </button>
-                {isSpeaking && (
-                  <button 
-                    onClick={stopSpeech}
-                    className="stop-speech"
-                    title={t.voiceTooltips.stopSpeaking}
-                  >
-                    <IoStopOutline />
-                  </button>
-                )}
+                </motion.button>
+                <AnimatePresence>
+                  {isSpeaking && (
+                    <motion.button 
+                      onClick={stopSpeech}
+                      className="stop-speech"
+                      title={t.voiceTooltips.stopSpeaking}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <IoStopOutline />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
               </div>
             )}
-            <button onClick={toggleTheme} className="theme-toggle">
+            <motion.button 
+              onClick={toggleTheme} 
+              className="theme-toggle"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               {isDarkMode ? <IoSunny /> : <IoMoon />}
-            </button>
+            </motion.button>
           </div>
         </div>
       </motion.header>
@@ -504,20 +664,29 @@ function App() {
             isVisible={showSuggestions && messages.length === 1}
             language={currentLanguage}
           />
-          <AnimatePresence>
+          <AnimatePresence mode="popLayout">
             {messages.map((msg, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
+                variants={messageVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                layout
                 className={`message ${msg.role} ${msg.isError ? 'error' : ''}`}
               >
-                <div className="message-avatar">
+                <motion.div 
+                  className="message-avatar"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   {msg.role === 'user' ? <FaUser /> : <BsRobot />}
-                </div>
-                <div className="message-bubble">
+                </motion.div>
+                <motion.div 
+                  className="message-bubble"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
                   <div className="message-content">
                     {msg.role === 'assistant' && !msg.isError 
                       ? parseWeatherResponse(msg.content) 
@@ -527,75 +696,81 @@ function App() {
                   <div className="message-timestamp">
                     {format(msg.timestamp, 'HH:mm')}
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             ))}
           </AnimatePresence>
           
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="message assistant typing"
-            >
-              <div className="message-avatar">
-                <BsRobot />
-              </div>
-              <div className="message-bubble">
-                <div className="typing-indicator">
-                  <div className="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                  <span className="typing-text">{t.typingIndicator}</span>
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                variants={messageVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="message assistant typing"
+              >
+                <div className="message-avatar">
+                  <BsRobot />
                 </div>
-              </div>
-            </motion.div>
-          )}
+                <div className="message-bubble">
+                  <div className="typing-indicator">
+                    <div className="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span className="typing-text">{t.typingIndicator}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
-          {isSpeaking && !isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="message assistant speaking"
-            >
-              <div className="message-avatar">
-                <BsRobot />
-              </div>
-              <div className="message-bubble">
-                <div className="speaking-indicator">
-                  <div className="sound-waves">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                  <span className="speaking-text">{t.speakingIndicator}</span>
+          <AnimatePresence>
+            {isSpeaking && !isLoading && (
+              <motion.div
+                variants={messageVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="message assistant speaking"
+              >
+                <div className="message-avatar">
+                  <BsRobot />
                 </div>
-              </div>
-            </motion.div>
-          )}
+                <div className="message-bubble">
+                  <div className="speaking-indicator">
+                    <div className="sound-waves">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span className="speaking-text">{t.speakingIndicator}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
         
         <motion.form 
           onSubmit={sendMessage} 
           className="input-form"
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          variants={inputVariants}
         >
           <div className="input-container">
-            <input
+            <motion.input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={isListening ? t.listeningPlaceholder : t.placeholder}
               disabled={isLoading || isListening}
               className="message-input"
+              whileFocus={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
             />
             {supportsSpeech && (
               <motion.button 
@@ -622,7 +797,7 @@ function App() {
           </div>
         </motion.form>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
