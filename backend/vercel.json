@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "name": "weatherbot-backend",
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai_api_key",
+    "OPENWEATHER_API_KEY": "@openweather_api_key",
+    "GROQ_API_KEY": "@groq_api_key"
+  },
+  "build": {
+    "env": {
+      "OPENAI_API_KEY": "@openai_api_key",
+      "OPENWEATHER_API_KEY": "@openweather_api_key",
+      "GROQ_API_KEY": "@groq_api_key"
+    }
+  },
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
+  }
+} 
