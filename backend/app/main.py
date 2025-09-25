@@ -13,6 +13,7 @@ FastAPI endpoints for frontend integration.
 """
 
 import os
+import sys
 import logging
 import re
 from pathlib import Path
@@ -22,11 +23,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# Add parent directory to path for local development
+if __name__ == "__main__" or "app" not in sys.modules:
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.models.groq import Groq
 from agno.tools.openweather import OpenWeatherTools
-from weather_tools_fixed import FixedWeatherTools
+
+# Try absolute import first (for Vercel), fallback to relative import (for local dev)
+try:
+    from app.weather_tools_fixed import FixedWeatherTools
+except ImportError:
+    from weather_tools_fixed import FixedWeatherTools
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
