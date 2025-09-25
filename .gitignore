@@ -31,10 +31,6 @@ Thumbs.db
 backend/venv/
 backend/.venv/
 
-# Deployment
-.vercel/
-.railway/
-
 # Logs
 *.log
 logs/
@@ -43,9 +39,6 @@ logs/
 coverage/
 .nyc_output/
 .coverage
-
-# Docker
-.docker/
 
 # Temporary files
 *.tmp
