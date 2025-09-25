@@ -16,11 +16,6 @@
       "dest": "/api/index.py"
     }
   ],
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "OPENAI_API_KEY": "@openai_api_key",
     "OPENWEATHER_API_KEY": "@openweather_api_key",
