@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { IoLocationSharp } from 'react-icons/io5';
 
-const QuickSuggestions = ({ onSuggestionClick, isVisible }) => {
+const QuickSuggestions = ({ onSuggestionClick, isVisible, language = 'en' }) => {
   const suggestions = [
     { city: 'New York', country: 'USA' },
     { city: 'London', country: 'UK' },
@@ -11,6 +11,19 @@ const QuickSuggestions = ({ onSuggestionClick, isVisible }) => {
     { city: 'Sydney', country: 'Australia' },
     { city: 'Dubai', country: 'UAE' }
   ];
+
+  const translations = {
+    en: {
+      header: 'Quick weather for popular cities:',
+      questionTemplate: (city) => `What's the weather like in ${city}?`
+    },
+    ja: {
+      header: '人気都市の天気をすぐに確認:',
+      questionTemplate: (city) => `${city}の天気はどうですか？`
+    }
+  };
+
+  const t = translations[language];
 
   if (!isVisible) return null;
 
@@ -24,7 +37,7 @@ const QuickSuggestions = ({ onSuggestionClick, isVisible }) => {
     >
       <div className="suggestions-header">
         <IoLocationSharp className="location-icon" />
-        <span>Quick weather for popular cities:</span>
+        <span>{t.header}</span>
       </div>
       <div className="suggestions-grid">
         {suggestions.map((suggestion, index) => (
@@ -36,7 +49,7 @@ const QuickSuggestions = ({ onSuggestionClick, isVisible }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             className="suggestion-chip"
-            onClick={() => onSuggestionClick(`What's the weather like in ${suggestion.city}?`)}
+            onClick={() => onSuggestionClick(t.questionTemplate(suggestion.city))}
           >
             <span className="city-name">{suggestion.city}</span>
             <span className="country-name">{suggestion.country}</span>
