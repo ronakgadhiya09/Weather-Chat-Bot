@@ -1,6 +1,21 @@
 {
   "version": 2,
   "name": "weatherbot-backend",
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ],
   "functions": {
     "api/index.py": {
       "maxDuration": 30

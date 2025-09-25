@@ -35,7 +35,12 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 base_dir = Path(__file__).resolve().parent.parent
 env_path = os.path.join(base_dir, "config.env")
-load_dotenv(env_path)
+# Try to load from config.env, but don't fail if it doesn't exist (for Vercel deployment)
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    # For Vercel deployment, environment variables are set via vercel.json
+    load_dotenv()  # Load from .env or environment
 
 # Log environment setup
 logger.info(f"Loading environment from: {env_path}")
@@ -305,16 +310,23 @@ class WeatherAssistant:
 # Global weather assistant instance
 weather_assistant = None
 
+def get_weather_assistant():
+    """Get or initialize the weather assistant (lazy loading for serverless)"""
+    global weather_assistant
+    if weather_assistant is None:
+        try:
+            weather_assistant = WeatherAssistant()
+            logger.info("Weather Assistant initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Weather Assistant: {e}")
+            weather_assistant = None
+    return weather_assistant
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize the weather assistant on startup"""
-    global weather_assistant
-    try:
-        weather_assistant = WeatherAssistant()
-        logger.info("Weather Assistant initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize Weather Assistant: {e}")
-        weather_assistant = None
+    # For serverless, we'll do lazy initialization instead
+    logger.info("WeatherBot API starting up...")
 
 # Weather-chat endpoint (main endpoint used by frontend)
 @app.post("/api/weather-chat")
@@ -323,7 +335,8 @@ async def weather_chat(request: ChatRequest):
     Main endpoint for weather chat - integrates weather info into the conversation
     """
     try:
-        if weather_assistant is None:
+        assistant = get_weather_assistant()
+        if assistant is None:
             raise HTTPException(status_code=500, detail="Weather Assistant not initialized")
         
         logger.info("Processing weather-chat request")
@@ -332,7 +345,7 @@ async def weather_chat(request: ChatRequest):
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
         
         # Process the conversation through the agentic assistant with language support
-        response = weather_assistant.process_conversation(messages, request.language)
+        response = assistant.process_conversation(messages, request.language)
         
         return {"response": response}
     
@@ -345,10 +358,11 @@ async def weather_chat(request: ChatRequest):
 async def get_weather(city: str):
     """Legacy endpoint for direct weather queries"""
     try:
-        if weather_assistant is None:
+        assistant = get_weather_assistant()
+        if assistant is None:
             raise HTTPException(status_code=500, detail="Weather Assistant not initialized")
         
-        response = weather_assistant.process_message(f"What's the current weather in {city}?")
+        response = assistant.process_message(f"What's the current weather in {city}?")
         
         # Try to return in expected format, but fallback to text response
         return {"description": response, "city": city}
@@ -366,9 +380,10 @@ async def chat_with_ai(request: ChatRequest):
 @app.get("/health")
 def health_check():
     """Health check endpoint"""
+    assistant = get_weather_assistant()
     return {
         "status": "ok",
-        "weather_assistant": "initialized" if weather_assistant else "not initialized"
+        "weather_assistant": "initialized" if assistant else "not initialized"
     }
 
 @app.get("/")
