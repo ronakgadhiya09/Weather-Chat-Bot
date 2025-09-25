@@ -215,7 +215,8 @@ function App() {
       try {
         setConnectionStatus('checking');
         console.log("Testing connection to backend...");
-        const response = await axios.get('http://localhost:8000/health', { timeout: 5000 });
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+        const response = await axios.get(`${API_URL}/health`, { timeout: 5000 });
         console.log("Backend health check:", response.data);
         setConnectionStatus('connected');
       } catch (error) {
@@ -460,7 +461,8 @@ function App() {
       console.log("Sending request to backend with messages:", [...messages, userMessage]);
       
       // Send request to backend with 15s timeout, including language information
-      const response = await axios.post('http://localhost:8000/api/weather-chat', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${API_URL}/api/weather-chat`, {
         messages: [...messages, userMessage],
         language: currentLanguage
       }, { timeout: 15000 });
