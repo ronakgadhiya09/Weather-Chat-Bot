@@ -10,4 +10,4 @@ from app.main import app
 # Vercel will look for this file to handle requests
 
 # Export the app for Vercel
-handler = app 
+app = app
